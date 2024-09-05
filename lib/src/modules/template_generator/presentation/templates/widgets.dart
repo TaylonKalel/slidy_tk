@@ -25,8 +25,10 @@ page: |
         appBar: AppBar(
           title: Text(widget.title),
         ),
-        body: const Column(
-          children: <Widget>[],
+        body: Column(
+          children: <Widget>[
+            Text(_store.value.toString())
+          ],
         ),
       );
     }

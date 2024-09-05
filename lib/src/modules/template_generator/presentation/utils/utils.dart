@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ansicolor/ansicolor.dart';
 import 'package:args/command_runner.dart';
 import 'package:slidy/slidy.dart';
 import 'package:slidy/src/core/prints/prints.dart';
@@ -12,7 +13,11 @@ Future injectParentModule(String injectionType, String fileNameWithUppeCase,
     String import, Directory directory) async {
   final injection = _injectionTemplate(injectionType, fileNameWithUppeCase);
 
-  final parentModule = await getParentModule(directory);
+  var newDirectory = directory;
+  if (directory.path.contains('stores')) {
+    newDirectory = Directory(directory.path.replaceAll('stores', 'modules'));
+  }
+  final parentModule = await getParentModule(newDirectory);
 
   var result = await Modular.get<AddLine>()
       .call(LineParams(parentModule, replaceLine: (line) {
@@ -42,11 +47,15 @@ Future injectParentModuleRouting(String path, String fileNameWithUppeCase,
     String import, Directory directory) async {
   final injection =
       'r.child(\'$path\', child: (_) => const $fileNameWithUppeCase);\n ';
-
-  final parentModule = await getParentModule(directory);
+  var newDirectory = directory;
+  if (directory.path.contains('pages')) {
+    newDirectory = Directory(directory.path.replaceAll('pages', 'modules'));
+  }
+  final parentModule = await getParentModule(newDirectory);
 
   var result = await Modular.get<AddLine>()
       .call(LineParams(parentModule, replaceLine: (line) {
+    var cyan = AnsiPen()..magenta(bold: true);
     if (line.contains('void routes(r) {')) {
       return line.replaceFirst(
           'void routes(r) { r.child("", child: (_) => const ());',
@@ -74,15 +83,32 @@ Future<void> addedInjectionInPage(
     {required TemplateFile templateFile,
     required String pathCommand,
     required bool noTest,
-    required String type}) async {
+    required String type,
+    bool folder = false}) async {
   var command = CommandRunner('slidy', 'CLI')..addCommand(GenerateCommand());
-  await command.run(['generate', 'page', pathCommand, if (noTest) '--notest']);
+  await command.run([
+    'generate',
+    'page',
+    pathCommand,
+    if (noTest) '--notest',
+    if (folder == true) '--folder'
+  ]);
+  var cyan = AnsiPen()..magenta(bold: true);
+  // print(cyan('fileNameWithUppeCase: ${templateFile.fileNameWithUppeCase}'));
+  // print(
+  //     cyan('templateFile.file.parent.path: ${templateFile.file.parent.path}'));
+  // print(cyan('templateFile.fileName: ${templateFile.fileName}'));
   final insertLine =
-      '  final ${templateFile.fileNameWithUppeCase}$type ${type.toLowerCase()} = Modular.get();';
+      ' late final ${templateFile.fileNameWithUppeCase}$type _${type.toLowerCase()};';
+  final insertLine2 = '\t\t_${type.toLowerCase()} = Modular.get();';
   final pageFile = File(
-      templateFile.file.parent.path + '/${templateFile.fileName}_page.dart');
+      templateFile.file.parent.path.replaceFirst('stores', 'pages') +
+          '/${templateFile.fileName}_page.dart');
   var result = await Modular.get<AddLine>()
-      .call(LineParams(pageFile, position: 9, inserts: [insertLine, '']));
+      .call(LineParams(pageFile, position: 10, inserts: [insertLine, '']));
+  execute(result);
+  result = await Modular.get<AddLine>()
+      .call(LineParams(pageFile, position: 15, inserts: [insertLine2]));
   execute(result);
   result = await Modular.get<AddLine>().call(LineParams(pageFile, inserts: [
     'import \'package:flutter_modular/flutter_modular.dart\';',

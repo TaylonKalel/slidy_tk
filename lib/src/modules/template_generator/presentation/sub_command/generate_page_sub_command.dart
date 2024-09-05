@@ -18,15 +18,23 @@ class GeneratePageSubCommand extends CommandBase {
   GeneratePageSubCommand() {
     argParser.addFlag('notest',
         abbr: 'n', negatable: false, help: 'Don`t create file test');
+    argParser.addFlag('folder',
+        abbr: 'f', negatable: false, help: 'Create folder structure');
     argParser.addOption('routing',
         abbr: 'r', help: 'Define routing path in parent module');
   }
 
   @override
   FutureOr run() async {
-    final templateFile =
+    // final templateFile =
+    //     await TemplateFile.getInstance(argResults?.rest.single ?? '', 'page');
+    var templateFile =
         await TemplateFile.getInstance(argResults?.rest.single ?? '', 'page');
-
+    if (argResults!['folder'] == true) {
+      templateFile = await TemplateFile.getInstance(
+          argResults?.rest.single ?? '', 'page',
+          structFolder: true);
+    }
     var result = await Modular.get<Create>().call(TemplateInfo(
         yaml: widgetsFile, destiny: templateFile.file, key: 'page'));
     execute(result);

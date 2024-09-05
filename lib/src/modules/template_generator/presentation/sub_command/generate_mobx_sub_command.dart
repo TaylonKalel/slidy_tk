@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:ansicolor/ansicolor.dart';
 import 'package:args/command_runner.dart';
 import 'package:slidy/slidy.dart';
 
@@ -19,6 +21,8 @@ class GenerateMobxSubCommand extends CommandBase {
   GenerateMobxSubCommand() {
     argParser.addFlag('notest',
         abbr: 'n', negatable: false, help: 'Don`t create file test');
+    argParser.addFlag('folder',
+        abbr: 'f', negatable: false, help: 'Create folder structure');
     argParser.addFlag('page',
         abbr: 'p', negatable: true, help: 'Create a Page file');
     argParser.addOption('bind',
@@ -40,8 +44,13 @@ class GenerateMobxSubCommand extends CommandBase {
 
   @override
   FutureOr run() async {
-    final templateFile =
+    var templateFile =
         await TemplateFile.getInstance(argResults?.rest.single ?? '', 'store');
+    if (argResults!['folder'] == true) {
+      templateFile = await TemplateFile.getInstance(
+          argResults?.rest.single ?? '', 'store',
+          structFolder: true);
+    }
 
     if (!await templateFile.checkDependencyIsExist('mobx')) {
       var command = CommandRunner('slidy', 'CLI')..addCommand(InstallCommand());
@@ -55,6 +64,7 @@ class GenerateMobxSubCommand extends CommandBase {
 
     var result = await Modular.get<Create>().call(
         TemplateInfo(yaml: mobxFile, destiny: templateFile.file, key: 'mobx'));
+
     execute(result);
     if (result.isRight()) {
       if (argResults!['page'] == true) {
@@ -62,7 +72,8 @@ class GenerateMobxSubCommand extends CommandBase {
             templateFile: templateFile,
             pathCommand: argResults!.rest.single,
             noTest: !argResults!['notest'],
-            type: 'Store');
+            type: 'Store',
+            folder: argResults!['folder']);
       }
       await utils.injectParentModule(
           argResults!['bind'],

@@ -22,6 +22,11 @@ class GenerateModuleSubCommand extends CommandBase {
   GenerateModuleSubCommand() {
     argParser.addFlag('notest',
         abbr: 'n', negatable: false, help: 'Don`t create file test');
+    argParser.addFlag('folder',
+        abbr: 'f',
+        negatable: false,
+        help: 'Specific if use folder struct (module, store, page)',
+        defaultsTo: false);
     // argParser.addOption('routing',
     //     abbr: 'r', help: 'Define routing path in parent module');
     argParser.addFlag('complete',
@@ -32,15 +37,19 @@ class GenerateModuleSubCommand extends CommandBase {
   }
 
   FutureOr runPage() async {
-    var templateFile =
-        await TemplateFile.getInstance(argResults?.rest.single ?? '', 'page');
+    var templateFile = await TemplateFile.getInstance(
+        argResults?.rest.single ?? '', 'page',
+        structFolder: argResults!['folder'] == true);
     templateFile = await TemplateFile.getInstance(
-        '${argResults!.rest.first}/${templateFile.fileName}', 'page');
+        '${argResults!.rest.first}/${templateFile.fileName}', 'page',
+        structFolder: argResults!['folder'] == true);
 
-    var templateFileModule =
-        await TemplateFile.getInstance(argResults?.rest.single ?? '', 'module');
+    var templateFileModule = await TemplateFile.getInstance(
+        argResults?.rest.single ?? '', 'module',
+        structFolder: argResults!['folder'] == true);
     templateFileModule = await TemplateFile.getInstance(
-        '${argResults!.rest.first}/${templateFile.fileName}', 'module');
+        '${argResults!.rest.first}/${templateFile.fileName}', 'module',
+        structFolder: argResults!['folder'] == true);
     // var result = await Modular.get<Create>().call(TemplateInfo(
     //     yaml: widgetsFile, destiny: templateFile.file, key: 'page'));
     // execute(result);
@@ -73,26 +82,16 @@ class GenerateModuleSubCommand extends CommandBase {
       throw UsageException('value not passed for a module command', usage);
     }
 
-    var templateFile =
-        await TemplateFile.getInstance(argResults?.rest.single ?? '', 'module');
+    var templateFile = await TemplateFile.getInstance(
+        argResults?.rest.single ?? '', 'module',
+        structFolder: argResults!['folder'] == true);
     templateFile = await TemplateFile.getInstance(
-        '${argResults!.rest.first}/${templateFile.fileName}', 'module');
+        '${argResults!.rest.first}/${templateFile.fileName}', 'module',
+        structFolder: argResults!['folder'] == true);
 
     var result = await Modular.get<Create>().call(TemplateInfo(
         key: 'module', destiny: templateFile.file, yaml: generateFile));
     execute(result);
-
-    if (!argResults!['notest']) {
-      // result = await Modular.get<Create>().call(TemplateInfo(
-      //     yaml: generateFile,
-      //     destiny: templateFile.fileTest,
-      //     key: 'module_test',
-      //     args: [
-      //       templateFile.fileNameWithUppeCase + 'Module',
-      //       templateFile.import
-      //     ]));
-      // execute(result);
-    }
 
     if (argResults!['complete'] != true) return;
 
@@ -115,10 +114,12 @@ class GenerateModuleSubCommand extends CommandBase {
       'generate',
       selected.replaceFirst('flutter_', ''),
       '${argResults!.rest.first}/${templateFile.fileName}',
-      '--page'
+      '--page',
+      if (argResults!['folder'] == true) '--folder'
     ]);
     templateFile = await TemplateFile.getInstance(
-        '${argResults!.rest.first}/${templateFile.fileName}', 'page');
+        '${argResults!.rest.first}/${templateFile.fileName}', 'page',
+        structFolder: argResults!['folder'] == true);
 
     await utils.injectParentModuleRouting(
         '/',
